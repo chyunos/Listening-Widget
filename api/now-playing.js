@@ -25,6 +25,19 @@ const getAccessToken = async () => {
 };
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   const { access_token } = await getAccessToken();
 
   const response = await fetch(NOW_PLAYING_ENDPOINT, {
@@ -39,6 +52,10 @@ export default async function handler(req, res) {
 
   const song = await response.json();
 
+  if (song.item === null) {
+    return res.status(200).json({ isPlaying: false });
+  }
+
   const isPlaying = song.is_playing;
   const title = song.item.name;
   const artist = song.item.artists.map((_artist) => _artist.name).join(', ');
@@ -47,7 +64,7 @@ export default async function handler(req, res) {
   const songUrl = song.item.external_urls.spotify;
 
   res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
-  
+
   return res.status(200).json({
     album,
     albumImageUrl,
